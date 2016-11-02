@@ -1,6 +1,6 @@
 var express = require('express');
 var async = require('async');
-var fetch = require('node-fetch');
+
 var request = require('request');
 const client = require('shodan-client');
 const util   = require('util');
@@ -66,15 +66,11 @@ client.search('webcamxp', 'zyEqgrpVl4T6zPxajV7q4rxB0vvFKoRm', searchOpts)
 .then(res => {
   //console.log('Result:');
   //console.log(util.inspect(res, { depth: 6 }));
-
-    for (var i = 0; i < 20; i++) {
-
-        var ipStr = res.matches[i].ip_str;
-        var lat = res.matches[i].location.latitude;
-        var long = res.matches[i].location.longitude;
-        console.log("IP = " + ipStr + ", Latitude = " + lat + ", Longitude = " + long);
-
-        processIp('http://' + ipStr + ':8080/cam_1.jpg');
-
-      }
-  });
+  for (var i = 0; i < 20; i++) {
+    var ipStr = res.matches[i].ip_str;
+    var lat = res.matches[i].location.latitude;
+    var long = res.matches[i].location.longitude;
+    console.log("IP = " + ipStr + ", Latitude = " + lat + ", Longitude = " + long);
+    processIp('http://' + ipStr + ':8080/cam_1.jpg');
+  }
+});
