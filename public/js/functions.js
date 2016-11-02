@@ -2,14 +2,14 @@
 var allCameras = [];
 var count = 0;
 
-$(document).ready(function(){
+// $(document).ready(function(){
     
-    $.ajax({
-        url: "allcameras.json",
-        dataType: "jsonp"
-    });
+//     $.ajax({
+//         url: "allcameras.json",
+//         dataType: "jsonp"
+//     });
 
-});
+// });
 
 function changeImage(selector, imageSrc) {		
     count += 1;

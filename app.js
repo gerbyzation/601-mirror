@@ -1,14 +1,38 @@
+var express = require('express');
 var async = require('async');
-var request = require('sync-request');
+var fetch = require('node-fetch');
+var request = require('request');
 const client = require('shodan-client');
 const util   = require('util');
 var allCameras = [];
 
+const app = express();
+
+app.use(express.static('public'));
+app.set('PORT', 80);
+
+app.get('/cameras', function (req, res) {
+    res.json({'cameras': 'hi'});
+})
+
+app.listen(3000, function () {
+    console.log('App listening on 3000');
+});
+
 // create a queue object with concurrency 5
-var q = async.queue(function(task, callback) {
-    task();
-    callback();
-}, 5);
+var q = async.queue(function(url, callback) {
+    console.log('Scanning: ' + url);
+
+    try {
+      request.head({
+        url,
+        method: "HEAD",
+        timeout: 2000,
+      }, callback);
+    } catch (e) {
+        console.log(e);
+    }
+}, 50);
 
 q.drain = function()
 {
@@ -22,23 +46,14 @@ var processIp = function(url)
 {
     // First argument = task
     // Second argument = callback
-    q.push(function()
-    {
-        console.log('Scanning: ' + url);
-
-        try {
-            var ipRes = request('HEAD', url, {timeout: 5000, socketTimeout: 5000});
-            //console.log(ipRes);
-
-            if (ipRes.headers["content-type"] == "image/jpeg") {
-                allCameras.push(url);
-                console.log('Saved: ' + url);
-            }
-        } catch (e) {
-            console.log(e);
+    q.push(url, function (error, response, body) {
+      if (response) {
+        if (response.headers["content-type"] == "image/jpeg") {
+          // console.dir(response.headers);
+          allCameras.push(url);
+          console.log('Saved: ' + url);
         }
-    }, function(err)
-    {
+      }
     });
 };
 
