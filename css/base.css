@@ -1,0 +1,15 @@
+img {
+    width: 100%;
+    height: auto;
+}
+
+.allImages {
+    list-style: none;   
+}
+
+.cameraImage {
+    width: 300px;
+    height: 300px;
+    color: grey;
+    display: inline-block;
+}
