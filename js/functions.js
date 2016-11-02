@@ -5,7 +5,7 @@ var count = 0;
 $(document).ready(function(){
     
     $.ajax({
-        url: "/allcameras.json",
+        url: "allcameras.json",
         dataType: "jsonp"
     });
 
