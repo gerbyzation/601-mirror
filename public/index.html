@@ -15,13 +15,40 @@
 <body>
     <h1>Many eyed mirror</h1>
 
-    <img src="http://195.28.128.146:8080/cam_1.cgi" width="100">
+    <!-- <img src="http://195.28.128.146:8080/cam_1.cgi" width="100"> -->
     
     <ul class="allImages">
         <li class="cameraImage"><img src="" id="cam1"></li>
         <li class="cameraImage"><img src="" id="cam2"></li>
         <li class="cameraImage"><img src="" id="cam3"></li>
     </ul>
+
+    <canvas id='canvas'></canvas>
+
+    <script type="text/javascript">
+      var img = new Image,
+        canvas = document.getElementById('canvas'),
+        context = canvas.getContext("2d"),
+        src = 'http://localhost:1337/195.28.128.146:8080/cam_1.jpg';
+
+      img.crossOrigin = 'Anonymous';
+
+      img.onload = function () {
+        canvas.width = img.width;
+        canvas.height = img.height;
+        context.drawImage(img, 0, 0);
+        localStorage.setItem('savedImageData', canvas.toDataURL("image/jpg"));
+      }
+
+      img.src = src;
+
+      // make sure the load event fires for cached images too
+      if (img.complete || img.complete === undefined) {
+        img.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==";
+        img.src = src;
+      }
+
+    </script>
         
 </body>
 </html>

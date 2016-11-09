@@ -4,14 +4,14 @@ var count = 0;
 
 $(document).ready(function(){
     
-    $.ajax({
-        method: 'GET',
-        url: 'http://requestb.in/wbocqbwb',
-        beforeSend: function (xhr) {
-            xhr.setRequestHeader('Connection', 'keep-alive');
-            xhr.setRequestHeader('Keep-Alive', 'timeout=9999, max=1000');
-        }
-    });
+    // $.ajax({
+    //     method: 'GET',
+    //     url: 'http://requestb.in/wbocqbwb',
+    //     beforeSend: function (xhr) {
+    //         xhr.setRequestHeader('Connection', 'keep-alive');
+    //         xhr.setRequestHeader('Keep-Alive', 'timeout=9999, max=1000');
+    //     }
+    // });
 
 });
 
