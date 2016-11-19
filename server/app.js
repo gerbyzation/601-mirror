@@ -1,9 +1,11 @@
-var express = require('express');
-var async = require('async');
+const express = require('express');
+const async = require('async');
 
-var request = require('request');
+const request = require('request');
 const client = require('shodan-client');
 const util   = require('util');
+const winston = require('winston');
+const expressWinston = require('express-winston');
 
 const opbeat = require('opbeat').start({
   appId: '7175bcb323',
@@ -12,14 +14,26 @@ const opbeat = require('opbeat').start({
 })
 
 const app = express();
+
 app.use(opbeat.middleware.express());
+app.use(expressWinston.errorLogger({
+  transports: [
+    new winston.transports.Console({
+      json: true,
+      colorize: true
+    })
+  ]
+}));
+
 app.use(express.static('public'));
 app.set('PORT', 80);
 
 // Register API endpoints
 require('./cameras')(app);
+require('./stream')(app);
+
 
 app.listen(3000, function () {
-    console.log('App listening on 3000');
+    // console.log('App listening on 3000');
 });
 

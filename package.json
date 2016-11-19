@@ -11,12 +11,18 @@
   "dependencies": {
     "async": "^2.1.2",
     "express": "^4.14.0",
+    "express-winston": "^2.0.0",
+    "file-on-write": "^1.1.1",
     "imagesloaded": "^4.1.1",
     "jimp": "^0.2.27",
+    "mjpeg-consumer": "^1.1.0",
+    "mjpeg-server": "^0.2.1",
     "opbeat": "^3.20.0",
     "redis": "^2.6.3",
     "request": "^2.76.0",
+    "sharp": "^0.16.2",
     "shodan-client": "^3.0.1",
-    "whatwg-fetch": "^1.0.0"
+    "whatwg-fetch": "^1.0.0",
+    "winston": "^2.3.0"
   }
 }

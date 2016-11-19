@@ -1,10 +1,14 @@
+/*
+ * Polls camera addresses stored in Redis
+ */
+
 const async = require('async');
 const request = require('request');
 const redis = require('redis');
 const jimp = require('jimp');
 
 const r = redis.createClient();
-
+const rb = redis.createClient({ return_buffers: true });
 
 const opbeat = require('opbeat').start({
   appId: '7175bcb323',
@@ -48,10 +52,12 @@ function addToQueue(url) {
   q.push(url, function (error, response, body) {
     if (response) {
       if (response.headers["content-type"] == "image/jpeg" && response.headers['content-length'] > 0) {
-
+        debugger;
         jimp.read(url, function (err, image) {
           console.log('finished reading', url);
-          r.hincrby(url, 'count', 1); 
+          r.hincrby(url, 'count', 1);
+          // store image over binary redis connection
+          rb.hset(url, 'image', response.body);
           addToQueue(url);
         });
       } else {
