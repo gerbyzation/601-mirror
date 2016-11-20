@@ -2,7 +2,7 @@ const stream = require('stream');
 const sharp = require('sharp');
 const util = require('util');
 const request = require('request');
-const MjpegConsumer = require('./consumer');
+const MjpegConsumer = require('mjpeg-consumer');
 
 const Writable = stream.Writable;
 const Transform = stream.Transform;
@@ -16,49 +16,24 @@ const eoi = new Buffer(2);
 soi.writeUInt16LE(0xd8ff, 0);
 eoi.writeUInt16LE(0xd9ff, 0);
 
-
-function Consumer(options) {
-  if (!(this instanceof Consumer)) {
-    return new Consumer(options);
-  }
-
-  stream.Transform.call(this, options);
-}
-
-Consumer.prototype._transform = function (chunk, encoding, done) {
-  var start = chunk.indexOf(soi);
-  var end = chunk.indexOf(eoi);
-  var len = (lengthRegex.exec(chunk.toString('ascii')) || [])[1];
-
-  // if (this.buffer && (this.reading || start > 1)) {
-  //   // thi
-  // }
-  // console.log('consumer', chunk, encoding);
-  this.push(chunk);
-}
-
-
-function Output(req, res, options) {
+function Output(options) {
   if (!(this instanceof Output)) {
-    return new Output(req, res, options);
+    return new Output(options);
   }
 
   if (!options) options = {};
-  stream.Writable.call(this, options);
-  this.req = req;
-  this.res = res;
+  stream.Transform.call(this, options);
 }
 
-util.inherits(Output, stream.Writable);
+util.inherits(Output, stream.Transform);
 
 Output.prototype._write = function (chunk, encoding, next) {
-  // console.log('output', chunk.length, encoding);
-  this.res.write("--myboundary\r\n");
-  this.res.write("Content-Type: image/jpeg\r\n");
-  this.res.write("Content-Length: " + chunk.length + "\r\n");
-  this.res.write("\r\n");
-  this.res.write(chunk, 'binary');
-  this.res.write("\r\n");
+  this.push("--myboundary\r\n");
+  this.push("Content-Type: image/jpeg\r\n");
+  this.push("Content-Length: " + chunk.length + "\r\n");
+  this.push("\r\n");
+  this.push(chunk);
+  this.push("\r\n");
   next();
 }
 
@@ -76,16 +51,17 @@ util.inherits(Resizer, stream.Transform);
 Resizer.prototype._transform = function (chunk, enc, done) {
   // console.log('resizer', chunk.length, 'encoding', enc);
   // console.log(chunk)
-  var start = Date.now();
   sharp(chunk)
     .resize(300)
     .toBuffer()
     .then(data => {
       this.push(data)
       done();
+    })
+    .catch(error => {
+      console.error(error)
+      done();
     });
-  var end = Date.now();
-  console.log('took', Date.now() - start, '(' + start + ',' + end + ')');
 }
 
 module.exports = function (app) {
@@ -98,11 +74,11 @@ module.exports = function (app) {
     });
 
     const resizer = Resizer();
-    // const resizer = sharp().resize(300).toBuffer();
     const output = Output(req, res, {});
     request.get('http://166.142.23.50:80/mjpg/video.mjpg')
       .pipe(consumer)
       .pipe(resizer)
-      .pipe(output);
+      .pipe(output)
+      .pipe(res);
   })
 }
