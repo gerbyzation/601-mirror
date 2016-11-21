@@ -5,6 +5,7 @@ const client = require('shodan-client');
 const redis = require('redis');
 var util = require('util');
 const winston = require('winston');
+var cheerio = require('cheerio');
 
 const r = redis.createClient();
 
