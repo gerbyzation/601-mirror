@@ -31,7 +31,7 @@ app.set('PORT', 80);
 // Register API endpoints
 require('./cameras')(app);
 require('./stream')(app);
-
+require('./scrape')(app);
 
 app.listen(3000, function () {
     // console.log('App listening on 3000');
