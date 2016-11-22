@@ -59,10 +59,13 @@ Resizer.prototype._transform = function (chunk, enc, done) {
       done();
     })
     .catch(error => {
-      console.error(error)
+      console.error('sharp error', error)
       done();
     });
 }
+
+const videostream = request.get('http://166.142.23.50:80/mjpg/video.mjpg')
+const pass = videostream.pipe(stream.PassThrough());
 
 module.exports = function (app) {
   app.get('/stream', (req, res) => {
@@ -75,7 +78,7 @@ module.exports = function (app) {
 
     const resizer = Resizer();
     const output = Output(req, res, {});
-    request.get('http://166.142.23.50:80/mjpg/video.mjpg')
+    pass
       .pipe(consumer)
       .pipe(resizer)
       .pipe(output)
