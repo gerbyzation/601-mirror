@@ -1,68 +1,11 @@
 const stream = require('stream');
-const sharp = require('sharp');
 const util = require('util');
 const request = require('request');
 const MjpegConsumer = require('mjpeg-consumer');
 
-const Writable = stream.Writable;
-const Transform = stream.Transform;
-
-
-
-const lengthRegex = /Content-Length:\s*(\d+)/i;
-
-const soi = new Buffer(2);
-const eoi = new Buffer(2);
-soi.writeUInt16LE(0xd8ff, 0);
-eoi.writeUInt16LE(0xd9ff, 0);
-
-function Output(options) {
-  if (!(this instanceof Output)) {
-    return new Output(options);
-  }
-
-  if (!options) options = {};
-  stream.Transform.call(this, options);
-}
-
-util.inherits(Output, stream.Transform);
-
-Output.prototype._write = function (chunk, encoding, next) {
-  this.push("--myboundary\r\n");
-  this.push("Content-Type: image/jpeg\r\n");
-  this.push("Content-Length: " + chunk.length + "\r\n");
-  this.push("\r\n");
-  this.push(chunk);
-  this.push("\r\n");
-  next();
-}
-
-function Resizer(options) {
-  if (!(this instanceof Resizer)) {
-    return new Resizer(options);
-  }
-
-  if (!options) options = {};
-  stream.Transform.call(this, options);
-}
-
-util.inherits(Resizer, stream.Transform);
-
-Resizer.prototype._transform = function (chunk, enc, done) {
-  // console.log('resizer', chunk.length, 'encoding', enc);
-  // console.log(chunk)
-  sharp(chunk)
-    .resize(300)
-    .toBuffer()
-    .then(data => {
-      this.push(data)
-      done();
-    })
-    .catch(error => {
-      console.error('sharp error', error)
-      done();
-    });
-}
+const Resizer = require('./Resizer');
+const Output = require('./Output');
+const Camera = require('./Camera');
 
 const urls = [
   "http://78.142.74.58:81/mjpg/video.mjpg",
@@ -84,20 +27,13 @@ const urls = [
   "http://65.96.34.56:50000/mjpg/video.mjpg",
 ];
 
-const videostreams = urls.map(url => request.get(url));
-var pipes = videostreams.map((_stream, i) => {
-  var s = _stream.pipe(stream.PassThrough())
-  s.on('readable', () => console.log(i, 'readable', Date.now()));
-  // s.on('data', () => console.log(i, 'data', Date.now()))
-  return s;
-});
-
-// const videostream = request.get('http://166.142.23.50:80/mjpg/video.mjpg')
-// const pass = videostream.pipe(stream.PassThrough());
-
-const consumers = pipes.map(() => new MjpegConsumer());
-const resizers = pipes.map(() => Resizer());
-const outputs = pipes.map(() => Output({}));
+// const streams = urls.map(url => new Camera(url));
+const pipes = [];
+for (let i = 0; i < urls.length; i++) {
+  let s = new Camera(urls[i]);
+  pipes[i] = s;
+  s.output.on('readable', () => console.log(i, 'readable', Date.now()));
+}
 
 module.exports = function (app) {
   app.get('/stream/:index', (req, res) => {
@@ -111,17 +47,11 @@ module.exports = function (app) {
     const index = req.params.index;
     let pipe = pipes[req.params.index];
 
-    pipe
-      .pipe(consumers[index])
-      .pipe(resizers[index])
-      .pipe(outputs[index])
-      .pipe(res);
+    pipe.pipe(res);
 
     req.on('close', () => {
-      pipe.unpipe(consumers[index]);
-      consumers[index].unpipe(resizers[index]);
-      resizers[index].unpipe(outputs[index]);
-      outputs[index].unpipe(res);
+      pipe.unpipe(res);
+      pipe.close();
       res.send();
     })
   })
