@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+
+<html>
+	<head>
+		<title>onload test</title>
+		<script src="js/color-thief.js"></script>
+
+		<script>
+			var c;
+			var ctx;
+            var img;
+			
+            img = new Image(360,360);
+            
+			function initialise(){
+				c = document.getElementById("webcam");
+				ctx = c.getContext("2d");
+
+				loop();
+			}	
+
+			function webcam() {
+				// loop webcams here?
+
+			}
+
+			function analyse(){
+				var colorThief = new ColorThief();
+
+                // image is server through CORSproxy
+                img.src = "http://localhost:1337/190.64.160.162:8080/cam_5.jpg";
+                img.crossOrigin = "Anonymous";
+                 
+                // act only after image load
+                img.onload = function(){          
+                    
+                    // then colorThief and get the color value 
+                    var colorThief = new ColorThief();       
+
+                    var color = colorThief.getColor(img);
+                    
+                    console.log(color, color[0]/ 100, color[1]/100, color[2]/100);
+ 
+                    ctx.drawImage(img, 0, 0);
+                    ctx.fillStyle = "rgb(" + color[0] +","+ color[1] +","+ color[2] +  ")"; 
+                    ctx.fillRect(0,450,500,50);
+
+                }
+                
+			}
+
+			function loop() {
+				window.requestAnimationFrame(loop);
+				webcam();
+                
+				analyse();
+
+			}
+
+			window.onload = initialise;
+//			document.getElementById("webcam").onload
+		</script>
+        
+	</head>
+
+	<body>
+		<canvas id="webcam" width="500px" height="500px">
+		</canvas>
+
+	</body>
+</html>

@@ -1,0 +1,131 @@
+<!doctype html>
+
+<html>
+    <head>
+        <title>Mosaic </title>
+    </head>
+    <body>
+
+<!--    === Webcam ===-->
+    <!--<div id="my_camera" style="visibility:hidden"></div>-->
+        <div id="my_camera"></div>
+        
+<!--    === Canvas ===-->
+        <canvas id="myCanvas" width="320" height="240" style="border:0px solid #000000;"></canvas>
+        <canvas id="displayCanvas" width="1280" height="720" style="position: absolute; top: 0; left: 0;" ></canvas>
+
+<!--    === Webcam script ===-->
+        <script type="text/javascript" src="js/webcam.js"></script>
+
+        <script language="JavaScript">
+            var c = document.getElementById("myCanvas");
+            var ctx = c.getContext("2d");
+            var pix;
+            
+            var c2 = document.getElementById("displayCanvas");
+            var ctx2 = c2.getContext("2d");
+
+            // number of rows and columns of pixels to take from webcam
+            var numberWidth = 25;
+            var numberHeight = 25;
+
+            // canvas size accordingly
+            ctx.canvas.width  = numberWidth;
+            ctx.canvas.height = numberHeight;
+            
+            width = ctx2.canvas.width / numberWidth;
+            height = ctx2.canvas.height / numberHeight;
+            
+            var img = new Image();   // Create new img element
+            img.src = 'img/0.jpg'; // Set source path
+            
+            // array to hold the colour values
+            var pixelColour = new Int8Array(numberWidth * numberHeight * 4);
+
+            Webcam.set({
+                // mirror mode
+                flip_horiz: true,
+
+                // live preview size
+                width: 320,
+                height: 240,
+
+                // device capture size
+                dest_width: 320,
+                dest_height: 240,
+
+                // final cropped size
+                crop_width: 320,
+                crop_height: 240,
+
+                // format and quality
+                image_format: 'jpeg',
+                jpeg_quality: 90
+            });
+
+            Webcam.attach( '#my_camera' );
+
+            function loop(){
+                requestAnimationFrame(loop);
+
+                Webcam.snap( function(data_uri, canvas, context) {
+                    // copy image to canvas
+                    ctx.drawImage( canvas, 0, 0 , numberWidth, numberHeight);
+ 
+                } );
+                
+                // Get the CanvasPixelArray 
+                var imgd = ctx.getImageData(0, 0, numberWidth, numberHeight);
+                pix = imgd.data;
+
+                // Loop over each pixel and store the colour values
+                for (var i = 0, n = pix.length; i < n; i += 4) {
+                    // colour
+                    pixelColour[i  ] = Math.floor( pix[i  ] / 51.1); // red devided and floored to get range 0 > 4
+                    pixelColour[i+1] = Math.floor( pix[i+1] / 51.1); // green
+                    pixelColour[i+2] = Math.floor( pix[i+2] / 51.1); // blue
+                    // i+3 is alpha, we dont need this for the colour
+                    
+                    // greyscale
+                    pixelColour[i+3] = Math.floor((pix[i] + pix[i+1] + pix[i+2]) / 6);
+                }
+                
+                // draw Mosaic webcam
+                for (var x = 0; x < numberWidth; x += 1) {
+                    for (var y = 0; y < numberHeight; y += 1) {
+                        // 4 bit colours
+//                        ctx2.fillStyle = 'rgb(' + pixelColour[(x * 4) + (y * 4 * numberWidth)] * 63 + ',' 
+//                                                + pixelColour[(x * 4 + 1) + (y * 4 * numberWidth)] * 63 + ',' 
+//                                                + pixelColour[(x * 4 + 2) + (y * 4 * numberWidth)] * 63 + ')';
+                        
+                        // greyscale
+                        ctx2.fillStyle = 'rgb(' + pixelColour[(x * 4 + 3) + (y * 4 * numberWidth)] * 2 + ',' 
+                                                + pixelColour[(x * 4 + 3) + (y * 4 * numberWidth)] * 2 + ',' 
+                                                + pixelColour[(x * 4 + 3) + (y * 4 * numberWidth)] * 2 + ')';
+                        
+                        // draw rectangle if image not found
+                        ctx2.fillRect(x * width, y * height, width, height);
+                                      
+                        // find matching image
+                        if(pixelColour[(x * 4) + (y * 4 * numberWidth)] == 0){
+                            ctx2.drawImage( img, x * width, y * height, width, height);
+                        }         
+                                      
+                    }
+                } 
+            }
+            
+            function resize(){
+                console.log("Resized");
+                ctx2.canvas.width  = window.innerWidth;
+                ctx2.canvas.height = window.innerHeight;
+                
+                width = ctx2.canvas.width / numberWidth;
+                height = ctx2.canvas.height / numberHeight;
+            }
+
+            window.onload = resize, loop();
+            window.onresize = resize;
+        </script>	
+    </body>
+</html>
