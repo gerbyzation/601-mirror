@@ -3,8 +3,8 @@ const sinon = require('sinon');
 
 const expect = chai.expect;
 
-const Channel = require('./server/Channel');
-const Drain = require('./server/Drain');
+const Channel = require('./server/feeds/Channel');
+const Drain = require('./server/feeds/Drain');
 
 describe('test the testing', () => {
   it('works', () => {
