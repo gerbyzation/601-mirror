@@ -22,8 +22,9 @@ function Camera(url) {
  * Open connection to camera and setup pipes
  * @param {String=} url - url to camera
  */
-Camera.prototype.connect = function (url) {
+Camera.prototype.connect = function (url, name) {
   this.connection = request.get(url);
+  this.name = name;
 
   function errorCallback (err) {
     if (err.code == 'ETIMEOUT') {
@@ -38,7 +39,7 @@ Camera.prototype.connect = function (url) {
   this.consumer = new MjpegConsumer();
   this.resizer = new Resizer();
   this.output = new Output();
-  this.channel = new Channel();
+  this.channel = new Channel(this.name);
   
   // setup the pipes
   return this.connection

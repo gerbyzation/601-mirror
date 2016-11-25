@@ -31,7 +31,7 @@ const urls = [
 // const streams = urls.map(url => new Camera(url));
 const pipes = [];
 for (let i = 0; i < urls.length; i++) {
-  let s = new Camera(urls[i])
+  let s = new Camera(urls[i], 'Camera ${i}');
   // s.channel.on('readable', () => console.log(i, 'readable', Date.now()));
   // s.channel.on('data', () => console.log(i, 'data', Date.now()));
   // s.pipe();
