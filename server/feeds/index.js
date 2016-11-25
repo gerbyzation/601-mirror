@@ -51,7 +51,6 @@ function streamRoute (app) {
     const index = req.params.index;
     let pipe = pipes[req.params.index];
 
-    pipe.pipe(process.stdout);
     pipe.pipe(res);
 
     req.on('close', () => {

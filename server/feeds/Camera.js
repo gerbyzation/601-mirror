@@ -27,15 +27,13 @@ Camera.prototype.connect = function (url, name) {
   this.name = name;
 
   function errorCallback (err) {
-    if (err.code == 'ETIMEOUT') {
+    if (err.code == 'ETIMEDOUT') {
       console.log('### reconnecting');
       this.reconnect();
     }
-    console.error('camera', url, err);
   }
 
-  // this.connection.on('error', errorCallback)
-  // this.connecton.on('abort', console.log)
+  this.connection.on('error', errorCallback.bind(this))
   this.consumer = new MjpegConsumer();
   this.resizer = new Resizer();
   this.output = new Output();
