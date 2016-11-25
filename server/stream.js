@@ -6,6 +6,7 @@ const MjpegConsumer = require('mjpeg-consumer');
 const Resizer = require('./Resizer');
 const Output = require('./Output');
 const Camera = require('./Camera');
+const Drain = require('./Drain');
 
 const urls = [
   "http://78.142.74.58:81/mjpg/video.mjpg",
@@ -23,20 +24,23 @@ const urls = [
   "http://92.220.56.55:80/mjpg/video.mjpg",
   "http://88.190.98.55:81/mjpg/video.mjpg",
   "http://75.42.18.55:8082/mjpg/video.mjpg",
-  "http://80.101.186.54:91/mjpg/video.mjpg",
+  // "http://80.101.186.54:91/mjpg/video.mjpg",
   "http://65.96.34.56:50000/mjpg/video.mjpg",
 ];
 
 // const streams = urls.map(url => new Camera(url));
 const pipes = [];
 for (let i = 0; i < urls.length; i++) {
-  let s = new Camera(urls[i]);
+  let s = new Camera(urls[i])
+  // s.channel.on('readable', () => console.log(i, 'readable', Date.now()));
+  // s.channel.on('data', () => console.log(i, 'data', Date.now()));
+  // s.pipe();
   pipes[i] = s;
-  s.output.on('readable', () => console.log(i, 'readable', Date.now()));
 }
 
-module.exports = function (app) {
+function streamRoute (app) {
   app.get('/stream/:index', (req, res) => {
+    console.log('reading stream', req.params.index);
     res.writeHead(200, {
       'Content-Type': 'multipart/x-mixed-replace; boundary=myboundary',
       'Cache-Control': 'no-cache',
@@ -47,6 +51,7 @@ module.exports = function (app) {
     const index = req.params.index;
     let pipe = pipes[req.params.index];
 
+    pipe.pipe(process.stdout);
     pipe.pipe(res);
 
     req.on('close', () => {
@@ -56,3 +61,5 @@ module.exports = function (app) {
     })
   })
 }
+
+module.exports = streamRoute;

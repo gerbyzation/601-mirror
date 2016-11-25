@@ -3,6 +3,7 @@ const MjpegConsumer = require('mjpeg-consumer');
 
 const Resizer = require('./Resizer');
 const Output = require('./Output');
+const Channel = require('./Channel');
 
 /**
  * Camera represents a connection with an mjpeg stream
@@ -32,27 +33,33 @@ Camera.prototype.connect = function (url) {
     console.error('camera', url, err);
   }
 
-  this.connection.on('error', errorCallback)
+  // this.connection.on('error', errorCallback)
+  // this.connecton.on('abort', console.log)
   this.consumer = new MjpegConsumer();
   this.resizer = new Resizer();
   this.output = new Output();
+  this.channel = new Channel();
   
   // setup the pipes
-  return this.resizer = this.connection.pipe(this.consumer).pipe(this.resizer).pipe(this.output);
+  return this.connection
+    .pipe(this.consumer)
+    .pipe(this.resizer)
+    .pipe(this.output)
+    .pipe(this.channel);
 }
 
 Camera.prototype.reconnect = function () {
   this.close();
-  this.connect(this.ur);
+  this.connect(this.url);
 }
 
 /**
  * Closes the connection to the camera and unpipe streams
  */
 Camera.prototype.close = function () {
-  this.connection.unpipe(this.consumer);
-  this.consumer.unpipe(this.resizer);
   this.resizer.unpipe(this.output);
+  this.consumer.unpipe(this.resizer);
+  // this.connection.unpipe(this.consumer);
 }
 
 /**
@@ -60,7 +67,7 @@ Camera.prototype.close = function () {
  * @param dest - stream to attach to
  */
 Camera.prototype.pipe = function (dest) {
-  return this.output.pipe(dest);
+  return this.channel.set(dest);
 }
 
 /**
@@ -68,7 +75,7 @@ Camera.prototype.pipe = function (dest) {
  * @param dest - stream to detach from
  */
 Camera.prototype.unpipe = function (dest) {
-  return this.output.unpipe(dest);
+  return this.channel.unpipe(dest);
 }
 
 module.exports = Camera;
