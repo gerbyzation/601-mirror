@@ -8,39 +8,57 @@ const Output = require('./Output');
 const Camera = require('./Camera');
 const Drain = require('./Drain');
 
-const urls = [
-  "http://78.142.74.58:81/mjpg/video.mjpg",
-  "http://50.123.219.57:80/mjpg/video.mjpg",
-  "http://79.121.108.58:80/mjpg/video.mjpg",
-  "http://70.116.159.58:80/mjpg/video.mjpg",
-  "http://2.248.119.57:80/mjpg/video.mjpg",
-  "http://87.20.84.57:81/mjpg/video.mjpg",
-  "http://95.226.17.54:80/mjpg/video.mjpg",
-  "http://203.124.37.58:80/mjpg/video.mjpg",
-  "http://194.46.230.57:1024/mjpg/video.mjpg",
-  "http://132.160.100.57:80/mjpg/video.mjpg",
-  "http://166.142.23.57:80/mjpg/video.mjpg",
-  "http://188.192.64.58:8080/mjpg/video.mjpg",
-  "http://92.220.56.55:80/mjpg/video.mjpg",
-  "http://88.190.98.55:81/mjpg/video.mjpg",
-  "http://75.42.18.55:8082/mjpg/video.mjpg",
-  // "http://80.101.186.54:91/mjpg/video.mjpg",
-  "http://65.96.34.56:50000/mjpg/video.mjpg",
-];
-
-// const streams = urls.map(url => new Camera(url));
-const pipes = [];
-for (let i = 0; i < urls.length; i++) {
-  let s = new Camera(urls[i], 'Camera ${i}');
-  // s.channel.on('readable', () => console.log(i, 'readable', Date.now()));
-  // s.channel.on('data', () => console.log(i, 'data', Date.now()));
-  // s.pipe();
-  pipes[i] = s;
-}
-
 function streamRoute (app) {
+  const socket = app.get('socket');
+  const logger = app.get('logger');
+
+  // const urls = [
+  //   "http://78.142.74.58:81/mjpg/video.mjpg",
+  //   "http://50.123.219.57:80/mjpg/video.mjpg",
+  //   "http://79.121.108.58:80/mjpg/video.mjpg",
+  //   "http://70.116.159.58:80/mjpg/video.mjpg",
+  //   "http://2.248.119.57:80/mjpg/video.mjpg",
+  //   "http://87.20.84.57:81/mjpg/video.mjpg",
+  //   "http://95.226.17.54:80/mjpg/video.mjpg",
+  //   "http://203.124.37.58:80/mjpg/video.mjpg",
+  //   "http://194.46.230.57:1024/mjpg/video.mjpg",
+  //   "http://132.160.100.57:80/mjpg/video.mjpg",
+  //   "http://166.142.23.57:80/mjpg/video.mjpg",
+  //   "http://188.192.64.58:8080/mjpg/video.mjpg",
+  //   "http://92.220.56.55:80/mjpg/video.mjpg",
+  //   "http://88.190.98.55:81/mjpg/video.mjpg",
+  //   "http://75.42.18.55:8082/mjpg/video.mjpg",
+  //   // "http://80.101.186.54:91/mjpg/video.mjpg",
+  //   "http://65.96.34.56:50000/mjpg/video.mjpg",
+  // ];
+
+  // const streams = urls.map(url => new Camera(url));
+
+  const pipes = {};
+  // for (let i = 0; i < urls.length; i++) {
+  //   let s = new Camera(urls[i], 'Camera ${i}');
+  //   // s.channel.on('readable', () => console.log(i, 'readable', Date.now()));
+  //   // s.channel.on('data', () => console.log(i, 'data', Date.now()));
+  //   // s.pipe();
+  //   pipes[i] = s;
+  // }
+
+  socket.on('init_feed', (data) => {
+    let feed = new Camera(data['url']);
+    let id = data['id'];
+    pipes[id] = feed;
+    logger.info('init feed', 'total feeds', Object.keys(pipes).length);
+    socket.emit('feed_active', {
+      id
+    })
+  });
+
+  socket.on('swap_feed', (data) => {
+
+  })
+
   app.get('/stream/:index', (req, res) => {
-    console.log('reading stream', req.params.index);
+    logger.info('reading stream', req.params.index);
     res.writeHead(200, {
       'Content-Type': 'multipart/x-mixed-replace; boundary=myboundary',
       'Cache-Control': 'no-cache',
