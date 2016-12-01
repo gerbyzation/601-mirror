@@ -1,20 +1,27 @@
 const express = require('express');
 const http = require('http');
 const socketio = require('socket.io');
-const logger = require('winston');
+const winston = require('winston');
 const expressWinston = require('express-winston');
+const consoleFormatter = require('winston-console-formatter');
+const sqlite3 = require('sqlite3');
+const uuid = require('node-uuid');
 
 const app = express();
 const server = http.Server(app);
 const io = socketio(server)
+const db = new sqlite3.Database(':memory:');
+const logger = new winston.Logger().add(winston.transports.Console, consoleFormatter.config());
 
-const nodes = {}
-
-const feeds = {}
+// setup database
+db.run('DROP TABLE IF EXISTS feeds;', (err, res) => { if (err) logger.error('drop table', err) });
+db.run('DROP TABLE IF EXISTS nodes;', (err, res) => { if (err) logger.error('drop table', err) });
+db.run('CREATE TABLE feeds (id VARCHAR(100) PRIMARY KEY NOT NULL, status TEXT NOT NULL, node TEXT, url VARCHAR(255) NOT NULL UNIQUE);', (err, res) => { if (err) logger.error('create feeds table', err) });
+db.run('CREATE TABLE nodes (id TEXT PRIMARY KEY NOT NULL);', (err, res) => { if (err) logger.error('create nodes table', err) });
 
 io.on('connection', (client) => {
   logger.info('a node connected', client.id);
-  nodes[client.id] = client;
+  db.run('INSERT INTO nodes VALUES ($node);',{$node: client.id}, (err, res) => { if (err) logger.error('add node', err) })
 
   client.emit('init_feed', {
     id: 123,
@@ -22,11 +29,15 @@ io.on('connection', (client) => {
   });
 
   client.on('feed_active', (data) => {
+    logger.debug('feed_active', data);
     let id = data.id;
-    feeds[id] = Object.assign({}, feeds[id], {
-      status: 'active',
-      node: client.id
-    });
+    db.run('UPDATE feeds SET status=$status, node=$node WHERE id=$id;', {
+      $status: 'active',
+      $node: client.id,
+      $id: id
+    }, (err, res) => {
+      if (err) logger.error('update feed', err);
+    })
   });
 
   client.on('disconnect', () => {
@@ -35,12 +46,18 @@ io.on('connection', (client) => {
 });
 
 function add_feed(url, id) {
-  feeds[id] = {
-    url,
-    status: 'inactive'
-  }
-
-  io.emit('init_feed', Object.assign({}, feeds[id], {id}));
+  db.run('INSERT INTO feeds (id, status, url) VALUES ($id, $status, $url);', {
+    $id: id,
+    $status: 'inactive', 
+    $url: url
+  }, (err, res) => {
+    if (err) logger.error('insert feed', err);
+  })
+  db.get('SELECT * FROM feeds WHERE id=$id;', {$id: id}, (err, res) => {
+    if (err) logger.error('get feed', err)
+    else io.emit('init_feed', res);
+    console.dir(res);
+  });
 }
 
 app.get('/start', (req, res) => {
@@ -57,14 +74,17 @@ app.get('/start', (req, res) => {
     "http://178.239.103.81:8001/mjpg/video.mjpg"
   ];
   _feeds.map((item, index) => {
-    let id = Object.keys(feeds).length;
+    let id = uuid.v4();
     add_feed(item, id);
   })
   res.send();
 });
 
 app.get('/status', (req, res) => {
-  res.json(feeds);
+  db.all('SELECT * FROM feeds', (err, data) => {
+    if (err) logger.error('select all feeds', err);
+    res.json(data);
+  });
 });
 
 server.listen(8081, () => {
