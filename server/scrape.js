@@ -1,19 +1,10 @@
 const async = require('async');
 const request = require('request');
-const jimp = require('jimp');
-const client = require('shodan-client');
-const redis = require('redis');
-const util = require('util');
 const cheerio = require('cheerio');
 const fs = require('fs');
-const allCameras = [ ];
 const exec = require('child_process').exec;
 
-const r = redis.createClient();
-
-r.on('error', (err) => {
-  console.log('Redis Error ' + err);
-});
+const allCameras = [ ];
 
 function scrapedCameras(app) {  
   return app.get('/scrape', function (req, res) {
