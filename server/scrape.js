@@ -1,12 +1,13 @@
-var async = require('async');
-var request = require('request');
-var jimp = require('jimp');
+const async = require('async');
+const request = require('request');
+const jimp = require('jimp');
 const client = require('shodan-client');
 const redis = require('redis');
-var util = require('util');
-var cheerio = require('cheerio');
-var fs = require('fs');
-var allCameras = [ ];
+const util = require('util');
+const cheerio = require('cheerio');
+const fs = require('fs');
+const allCameras = [ ];
+const exec = require('child_process').exec;
 
 const r = redis.createClient();
 
@@ -21,79 +22,61 @@ function scrapedCameras(app) {
     // create a queue object with concurrency 10
     const q = async.queue(function (url, callback) {
       console.log('Scanning: ' + url);
-
       try {
-
         request(url, function (error, response, html) {
-            if(!error) {
-                var $ = cheerio.load(html);
+          if(!error) {
+            var $ = cheerio.load(html);
 
-                var imageSource;
-                
-                $('.row.thumbnail-items a.thumbnail-item__wrap .thumbnail-item__preview img.thumbnail-item__img').filter(function() {
-                    imageSource = $(this).attr('src');
-                    var editedImgSource = imageSource.replace("?COUNTER", "");
-                    allCameras.push(editedImgSource);
-                });
-
-            } else {
-                console.log(error);
-            }
-
-            callback();
-        });
-
-      } catch (e) {
-          console.log(e);
+            var imageSource;
+            $('.row.thumbnail-items a.thumbnail-item__wrap .thumbnail-item__preview img.thumbnail-item__img').filter(function() {
+                imageSource = $(this).attr('src').replace("?COUNTER", "");
+                verifyCam(imageSource);
+            });
+          } else {
+            console.log(error);
+          }
           callback();
+        });
+      } catch (e) {
+        console.log(e);
+        callback();
       }
     }, 10);
 
     q.drain = function() {
-        console.log('Queue empty');
-
-        fs.writeFile('output.json', JSON.stringify(allCameras, null, 4), function(err) {
-            console.log('File successfully written! - Check your project directory for the output.json file');
-        });
-
-        return res.send('Finished');
+      console.log('Queue empty');
+      fs.writeFile('output.json', JSON.stringify(allCameras, null, 4), function(err) {
+          console.log('File successfully written! - Check your project directory for the output.json file');
+      });
+      return res.send('Finished');
     };
 
     // Loop through 1130 pages of Axis webcams
     for (var i=1; i <= 1130; i++) { 
-
-        url = 'http://www.insecam.org/en/bytype/axis/' + "?page=" + i; // page 1 to 1130
-        q.push(url);
-
+      url = 'http://www.insecam.org/en/bytype/axis/' + "?page=" + i; // page 1 to 1130
+      q.push(url);
     }    
+  })
+}
 
-    /* Loop through 112 pages of http://www.opentopia.com/ webcams
-
-    for (var i=1; i <= 112; i++) { 
-
-        url = 'http://www.opentopia.com/hiddencam.php?showmode=standard&country=%2A&seewhat=highlyrated&p=' + i; // page 1 to 112
-
-        request(url, function(error, response, html) {
-            if(!error){
-                var $ = cheerio.load(html);
-
-                var imageSource;
-                
-                $('.boxcontent ul.camgrid.camgrid3 li a img').filter(function() {
-                    imageSource = $(this).attr('src');
-                    var editedImgSource = imageSource.replace("medium", "big");
-                    allCameras.push(editedImgSource);
-                })
-            }
-            
-            // res.send('Check your console!') 
-
-        });
+function verifyCam(url) {
+  const child = exec('curl -I --connect-timeout 2 ' + url, (error, stdout, stderr) => {
+    if (error) {
+      console.error('curl error', error);
+    }
+    if (stderr) {
+      // console.error('curl stderr', stderr);
     }
 
-    */
-
-  })
+    if (stdout) {
+      if (stdout.includes('200 OK')) {
+        allCameras.push(url);
+        return;
+      } else {
+        console.log('rejected: ', stdout);        
+      }
+    }
+  });
 }
 
 module.exports = scrapedCameras;
