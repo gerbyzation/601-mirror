@@ -1,2 +1,4 @@
 node_modules/
 *.rdb
+*.db
+npm-debug.log

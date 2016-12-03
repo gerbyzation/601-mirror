@@ -6,18 +6,24 @@ const expressWinston = require('express-winston');
 const consoleFormatter = require('winston-console-formatter');
 const sqlite3 = require('sqlite3');
 const uuid = require('node-uuid');
+const fs = require('fs');
+const path = require('path');
+const moment = require('moment');
 
 const app = express();
 const server = http.Server(app);
 const io = socketio(server)
-const db = new sqlite3.Database(':memory:');
+const db = new sqlite3.Database('./stuff.db');
 const logger = new winston.Logger().add(winston.transports.Console, consoleFormatter.config());
 
-// setup database
-db.run('DROP TABLE IF EXISTS feeds;', (err, res) => { if (err) logger.error('drop table', err) });
-db.run('DROP TABLE IF EXISTS nodes;', (err, res) => { if (err) logger.error('drop table', err) });
-db.run('CREATE TABLE feeds (id VARCHAR(100) PRIMARY KEY NOT NULL, status TEXT NOT NULL, node TEXT, url VARCHAR(255) NOT NULL UNIQUE);', (err, res) => { if (err) logger.error('create feeds table', err) });
-db.run('CREATE TABLE nodes (id TEXT PRIMARY KEY NOT NULL);', (err, res) => { if (err) logger.error('create nodes table', err) });
+const init = require('./init');
+
+app.set('db', db);
+app.set('logger', logger);
+app.set('io', io);
+
+// setup database and read feeds from output.json
+init(app);
 
 io.on('connection', (client) => {
   logger.info('a node connected', client.id);
@@ -40,52 +46,33 @@ io.on('connection', (client) => {
     })
   });
 
+  client.on('request_dusty_feeds', () => {
+    logger.info('request_dusty_feeds');
+    const feeds = db.all('SELECT * FROM feeds WHERE status = "inactive" AND color_verified IS NULL;', (err, res) => {
+      if (err) logger.error('query dusty feeds', err)
+      else {
+        logger.info('sending verify_colors');
+        console.log(err, res);
+        client.emit('verify_colors', res);
+      }
+    })
+  })
+
+  client.on('update_feed_color', (data) => {
+    db.run('UPDATE feeds SET color=$color, color_verified=$color_verified WHERE id=$id;', {
+      $color: data.color,
+      $color_verified: moment().format('YYYY-MM-DD HH-mm-ss'),
+      $id: data.id
+    })
+
+  })
+
   client.on('disconnect', () => {
     logger.info('node disconnected', client.id);
   });
 });
 
-function add_feed(url, id) {
-  db.run('INSERT INTO feeds (id, status, url) VALUES ($id, $status, $url);', {
-    $id: id,
-    $status: 'inactive', 
-    $url: url
-  }, (err, res) => {
-    if (err) logger.error('insert feed', err);
-  })
-  db.get('SELECT * FROM feeds WHERE id=$id;', {$id: id}, (err, res) => {
-    if (err) logger.error('get feed', err)
-    else io.emit('init_feed', res);
-    console.dir(res);
-  });
-}
-
-app.get('/start', (req, res) => {
-  logger.info('start feeds');
-  const _feeds = [
-    "http://87.13.38.83:83/mjpg/video.mjpg",
-    "http://93.149.227.84:81/mjpg/video.mjpg",
-    "http://87.13.38.83:81/mjpg/video.mjpg",
-    "http://86.87.59.85:81/mjpg/video.mjpg",
-    "http://81.149.241.84:80/mjpg/video.mjpg",
-    "http://87.4.208.84:8083/mjpg/video.mjpg",
-    "http://187.152.63.82:80/mjpg/video.mjpg",
-    "http://166.140.213.81:8080/mjpg/video.mjpg",
-    "http://178.239.103.81:8001/mjpg/video.mjpg"
-  ];
-  _feeds.map((item, index) => {
-    let id = uuid.v4();
-    add_feed(item, id);
-  })
-  res.send();
-});
-
-app.get('/status', (req, res) => {
-  db.all('SELECT * FROM feeds', (err, data) => {
-    if (err) logger.error('select all feeds', err);
-    res.json(data);
-  });
-});
+require('./routes')(app);
 
 server.listen(8081, () => {
   logger.info('master server listening on 8081');

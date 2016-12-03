@@ -47,7 +47,6 @@ r.smembers('urls', (err, reply) => {
   }
 });
 
-
 function addToQueue(url) {
   q.push(url, function (error, response, body) {
     if (response) {

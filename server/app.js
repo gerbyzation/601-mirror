@@ -34,7 +34,6 @@ app.set('logger', winston);
 // Register API endpoints
 require('./cameras')(app);
 require('./feeds')(app);
-require('./scrape')(app);
 
 app.listen(3000, function () {
     winston.info('App listening on 3000');
