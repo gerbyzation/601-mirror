@@ -57,7 +57,7 @@ io.on('connection', (client) => {
 
   client.on('request_dusty_feeds', () => {
     logger.info('request_dusty_feeds');
-    const feeds = db.all('SELECT * FROM feeds WHERE status = "inactive" AND color_verified IS NULL;', (err, res) => {
+    const feeds = db.all('SELECT * FROM feeds WHERE status = "inactive" AND color_verified IS NULL OR color_verified < $fallofftime;',{$fallofftime: Date.now() - 5 * 60 * 1000}, (err, res) => {
       if (err) logger.error('query dusty feeds', err)
       else {
         if (res.length > 0) {
