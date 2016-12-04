@@ -14,7 +14,11 @@ const app = express();
 const server = http.Server(app);
 const io = socketio(server)
 const db = new sqlite3.Database('./stuff.db');
-const logger = new winston.Logger().add(winston.transports.Console, consoleFormatter.config());
+const logger = new winston.Logger({
+  transports: [
+    new (winston.transports.Console)({level: 'debug'}),
+  ]
+});
 
 const init = require('./init');
 
@@ -26,6 +30,11 @@ app.set('io', io);
 init(app);
 
 io.on('connection', (client) => {
+  client.use(function(packet, next){
+    logger.debug('received packet');
+    next();
+  });
+
   logger.info('a node connected', client.id);
   db.run('INSERT INTO nodes VALUES ($node);',{$node: client.id}, (err, res) => { if (err) logger.error('add node', err) })
 
@@ -51,20 +60,26 @@ io.on('connection', (client) => {
     const feeds = db.all('SELECT * FROM feeds WHERE status = "inactive" AND color_verified IS NULL;', (err, res) => {
       if (err) logger.error('query dusty feeds', err)
       else {
-        logger.info('sending verify_colors');
-        console.log(err, res);
-        client.emit('verify_colors', res);
+        if (res.length > 0) {
+          logger.info('sending verify_colors', res.length);
+          client.emit('verify_colors', res);
+        } else {
+          logger.debug('no feeds to verify');
+        }
       }
     })
   })
 
   client.on('update_feed_color', (data) => {
+    logger.debug("update color", data);
     db.run('UPDATE feeds SET color=$color, color_verified=$color_verified WHERE id=$id;', {
       $color: data.color,
-      $color_verified: moment().format('YYYY-MM-DD HH-mm-ss'),
+      $color_verified: Date.now(),
       $id: data.id
+    }, (err, res) => {
+      if (err) logger.error('update color err', err)
+      else logger.debug('update color res', res);
     })
-
   })
 
   client.on('disconnect', () => {
