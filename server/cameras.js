@@ -10,7 +10,11 @@ var cheerio = require('cheerio');
 const r = redis.createClient();
 
 r.on('error', (err) => {
-  winston.error('Redis Error ' + err);
+  if (err.code == 'ECONNREFUSED') {
+    winston.error('Failed to connect to redis. Verify redis is running')
+    return process.exit(1);
+  }
+  winston.error('Redis Error: ' + err);
 });
 
 function cameras(app) {

@@ -1,8 +1,9 @@
 const winston = require('winston');
 const MjpegCamera = require('mjpeg-camera');
+const getColors = require('get-image-colors');
+const async = require('async');
 
 const socket = require('socket.io-client')('http://localhost:8081');
-const ColorThief = require('color-thief');
 
 const logger = new winston.Logger({
   transports: [
@@ -30,33 +31,42 @@ function check() {
 socket.on('verify_colors', (data) => {
   logger.debug('verify_colors socket event', data.length);
   data.map((item) => {
-    // const camera = new MjpegCamera({
-    //   url: item.url
-    // });
-    socket.emit('update_feed_color', {
-      id: item.id,
-      color: Math.round(Math.random() * 250)
+    queue.push(item, (err, start) => {
+      if (err) logger.error('get frame error', err);
+      logger.debug('took', Date.now() - start, 'ms');
     });
-    // camera.getScreenshot((err, frame) => {
-    //   if (err) return logger.error(err);
-      
-    //   const color = getColor(frame);
-    // });
   });
 });
 
+const queue = async.queue((item, done) => {
+  const alert = setTimeout(() => {
+    logger.warn('Worker taking too long to complete');
+  }, 20 * 1000);
 
-/**
- *
- */
-function getColor(buffer) {
-  logger.debug('buffer', buffer);
-  const data = 'data:image/jpeg;base64,' + buffer.toString('base64');
-  // const image = new Image();
-  // image.src = data;
-
-  // const thief = new ColorThief();
-  // const color = thief.getColor(data);
-  // logger.debug(color, color[0]/100, color[1]/100, color[2]/100);
-  return 125;
-}
+  const start = Date.now();
+  const camera = new MjpegCamera({
+    url: item.url,
+    timeout: 10000
+  });
+  camera.getScreenshot((err, frame) => {
+    if (err) {
+      clearTimeout(alert);
+      return done(err);
+    }
+    
+    getColors(frame, 'image/jpg', (err, colors) => {
+      if (err) {
+        clearTimeout(alert);
+        return done(err);
+      }
+      const grey = Math.floor(colors[0].rgb().reduce((a, b) => a + b) / 6);
+      logger.debug('grey value', grey);
+      socket.emit('update_feed_color', {
+        id: item.id,
+        color: grey,
+      });
+      clearTimeout(alert);
+      done(null, start);
+    });
+  });
+}, 25);

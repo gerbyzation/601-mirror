@@ -83,7 +83,7 @@ io.on('connection', (client) => {
   });
 
   client.on('update_feed_color', (data) => {
-    logger.debug("update color", data);
+    logger.debug("update color now", data);
     if (data.active) {
       db.serialize(() => {
         db.get(
@@ -97,10 +97,9 @@ io.on('connection', (client) => {
             };
           }
         )
-        update();
       })
     }
-    update = () => db.run(
+    db.run(
       `UPDATE feeds SET
       color=$color,
       color_verified=$color_verified
@@ -111,7 +110,7 @@ io.on('connection', (client) => {
         $id: data.id
       },
       (err, res) => {
-        if (err) logger.error('update color err', err)
+        if (err) return logger.error('update color err', err)
         else logger.debug('update color res', res);
       }
     );
