@@ -49,8 +49,8 @@ const queue = async.queue((item, done) => {
     timeout: 10000
   });
   camera.getScreenshot((err, frame) => {
+    clearTimeout(alert);
     if (err) {
-      clearTimeout(alert);
       return done(err);
     }
     
@@ -69,4 +69,4 @@ const queue = async.queue((item, done) => {
       done(null, start);
     });
   });
-}, 25);
+}, 70);

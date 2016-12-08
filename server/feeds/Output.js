@@ -1,3 +1,7 @@
+/**
+ * Create MJPEG stream from JPEG frames
+ */
+
 const stream = require('stream');
 const util = require('util');
 

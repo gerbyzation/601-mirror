@@ -13,7 +13,7 @@ const moment = require('moment');
 const app = express();
 const server = http.Server(app);
 const io = socketio(server)
-const db = new sqlite3.Database('./stuff.db');
+
 const logger = new winston.Logger({
   transports: [
     new (winston.transports.Console)({level: 'debug'}),
@@ -22,20 +22,15 @@ const logger = new winston.Logger({
 
 const init = require('./init');
 
-app.set('db', db);
 app.set('logger', logger);
 app.set('io', io);
 
 // setup database and read feeds from output.json
 init(app);
+const db = app.get('db');
 
 io.on('connection', (client) => {
   logger.info('a node connected', client.id);
-
-  client.use(function(packet, next){
-    logger.debug('received packet');
-    next();
-  });
 
   db.run(
     'INSERT INTO nodes VALUES ($node);',
@@ -51,12 +46,10 @@ io.on('connection', (client) => {
   client.on('feed_active', (data) => {
     logger.debug('feed_active', data);
     let id = data.id;
-    db.run('UPDATE feeds SET status=$status, node=$node WHERE id=$id;', {
-      $status: 'active',
-      $node: client.id,
-      $id: id
-    }, (err, res) => {
+    let query = 'UPDATE feeds SET status="' + 'active' + '", node="' + client.id + '" WHERE id="' + id + '"';
+    db.run(query, (err, res) => {
       if (err) logger.error('update feed', err);
+      if (res) logger.info('feed_active update', res);
     });
   });
 
@@ -67,7 +60,7 @@ io.on('connection', (client) => {
       status = "inactive" AND
       color_verified IS NULL
       OR color_verified < $fallofftime;`,
-      {$fallofftime: Date.now() - 5 * 60 * 1000}, 
+      {$fallofftime: Date.now() - 15 * 60 * 1000}, 
       (err, res) => {
         if (err) logger.error('query dusty feeds', err)
         else {
@@ -114,6 +107,31 @@ io.on('connection', (client) => {
         else logger.debug('update color res', res);
       }
     );
+  });
+
+  client.on('init_streams', () => {
+    for (var i = 1; i <= 15; i++){
+      let query = 'SELECT * FROM feeds WHERE color=' + i;
+      logger.debug('query', query);
+      db.get(query, (err, response) => {
+          if (err) return logger.error(err);
+          if (response !== undefined) {
+            logger.debug('init_feed', response);
+            client.emit('init_feed', response);
+          } else {
+            logger.warn('init_feed query returned undefined');
+          }
+        }
+      );
+    }
+  })
+
+  client.on('image_frame', (data) => {
+    db.get('SELECT color FROM feeds WHERE id=$id', {id: data.id}, (err, res) => {
+      if (err) return logger.error(err);
+      data.color = res.color;
+      io.emit('image_frame', data);
+    })
   });
 
   client.on('disconnect', () => {

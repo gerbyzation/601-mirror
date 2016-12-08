@@ -1,3 +1,7 @@
+/**
+ * Switch-stream that facilitates piping into different streams
+ */
+
 const stream = require('stream');
 const util = require('util');
 

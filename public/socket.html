@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>socket test</title>
+  <script src='http://localhost:8081/socket.io/socket.io.js'></script>
+  <script>
+  </script>
+</head>
+<body>
+<script>
+  var socket = io('http://localhost:8081');
+  socket.on('connection', function(socket){
+    console.log('a user connected');
+    socket.on('disconnect', function(){
+      console.log('user disconnected');
+    });
+  });
+
+  socket.on('init_feed', function (data) {
+    console.log("init feed", data);
+  });
+
+  socket.on('image_frame', function (data) {
+    console.log('image frame', data);
+  });
+</script>
+</body>
+</html>

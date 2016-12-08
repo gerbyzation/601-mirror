@@ -1,4 +1,5 @@
 node_modules/
 *.rdb
 *.db
+*.db-backup
 npm-debug.log

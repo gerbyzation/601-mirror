@@ -17,7 +17,7 @@ Resizer.prototype._transform = function (chunk, enc, done) {
   // console.log('resizer', chunk.length, 'encoding', enc);
   // console.log(chunk)
   sharp(chunk)
-    .resize(300)
+    .resize(64)
     .toBuffer()
     .then(data => {
       this.push(data)

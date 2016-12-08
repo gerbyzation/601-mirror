@@ -16,7 +16,7 @@
     "get-image-colors": "git+https://github.com/gerbyzation/get-image-colors.git",
     "imagesloaded": "^4.1.1",
     "jimp": "^0.2.27",
-    "mjpeg-camera": "^1.7.2",
+    "mjpeg-camera": "git+https://github.com/gerbyzation/mjpeg-camera.git",
     "mjpeg-consumer": "^1.1.0",
     "mjpeg-server": "^0.2.1",
     "moment": "^2.17.0",

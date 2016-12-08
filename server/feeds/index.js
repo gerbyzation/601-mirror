@@ -9,14 +9,16 @@ const Camera = require('./Camera');
 const Drain = require('./Drain');
 
 function streamRoute (app) {
-  const socket = app.get('socket');
+  const socket = app.get('client');
+  // const socket = app.get('socket');
   const logger = app.get('logger');
 
   const pipes = {};
 
   function init_feed(data) {
-    let feed = new Camera(data['url']);
+    console.log('url', data)
     let id = data['id'];
+    let feed = new Camera(data['url'], socket, id);
     pipes[id] = feed;
     logger.info('init feed', 'total feeds', Object.keys(pipes).length);
     socket.emit('feed_active', {
@@ -31,32 +33,34 @@ function streamRoute (app) {
   socket.on('swap_feed', (data) => {
     const id = data.currentFeedId;
     const newFeed = data.newFeed;
-    init_feed(newFeed, socket);
+    init_feed(newFeed);
     setTimeout(500, () => {
       pipes[id].close();
       delete pipes[id];
     });
   })
 
-  app.get('/stream/:index', (req, res) => {
-    logger.info('reading stream', req.params.index);
-    res.writeHead(200, {
-      'Content-Type': 'multipart/x-mixed-replace; boundary=myboundary',
-      'Cache-Control': 'no-cache',
-      'Connection': 'close',
-      'Pragma': 'no-cache'
-    });
+  app.get('/start_streams', (req, res) => {
+    socket.emit('init_streams');
+    res.send();
+    // logger.info('reading stream', req.params.index);
+    // res.writeHead(200, {
+    //   'Content-Type': 'multipart/x-mixed-replace; boundary=myboundary',
+    //   'Cache-Control': 'no-cache',
+    //   'Connection': 'close',
+    //   'Pragma': 'no-cache'
+    // });
 
-    const index = req.params.index;
-    let pipe = pipes[req.params.index];
+    // const index = req.params.index;
+    // let pipe = pipes[req.params.index];
 
-    pipe.pipe(res);
+    // pipe.pipe(res);
 
-    req.on('close', () => {
-      pipe.unpipe(res);
-      pipe.close();
-      res.send();
-    });
+    // req.on('close', () => {
+    //   pipe.unpipe(res);
+    //   pipe.close();
+    //   res.send();
+    // });
   });
 }
 

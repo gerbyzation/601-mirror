@@ -1,13 +1,15 @@
 const express = require('express');
 const async = require('async');
+const http = require('http');
 
 const request = require('request');
-const client = require('shodan-client');
+const shodan = require('shodan-client');
 const util   = require('util');
 const winston = require('winston');
 const expressWinston = require('express-winston');
 
-const socket = require('socket.io-client')('http://localhost:8081');
+const client = require('socket.io-client')('http://localhost:8081');
+const socketio = require('socket.io');
 const opbeat = require('opbeat').start({
   appId: '7175bcb323',
   organizationId: '2c89e2d518d64f2e8e4e3b0c5f7ba81a',
@@ -15,6 +17,8 @@ const opbeat = require('opbeat').start({
 })
 
 const app = express();
+const server = http.Server(app);
+// const socket = socketio(server)
 
 app.use(opbeat.middleware.express());
 app.use(expressWinston.errorLogger({
@@ -28,14 +32,15 @@ app.use(expressWinston.errorLogger({
 
 app.use(express.static('public'));
 app.set('PORT', 80);
-app.set('socket', socket);
+// app.set('socket', socket);
+app.set('client', client);
 app.set('logger', winston);
 
 // Register API endpoints
 require('./cameras')(app);
 require('./feeds')(app);
 
-app.listen(3000, function () {
+server.listen(3000, function () {
     winston.info('App listening on 3000');
 });
 

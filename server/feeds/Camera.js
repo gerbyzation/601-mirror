@@ -4,14 +4,17 @@ const MjpegConsumer = require('mjpeg-consumer');
 const Resizer = require('./Resizer');
 const Output = require('./Output');
 const Channel = require('./Channel');
+const WriteToSocket = require('./WriteToSocket');
 
 /**
  * Camera represents a connection with an mjpeg stream
  * @param {String=} url - url to mjpeg stream
  * @constructor
  */
-function Camera(url) {
+function Camera(url, socket, id) {
   this.url = url;
+  this.id = id;
+  this.socket = socket;
 
   // initiate connection
   this.connect(url);
@@ -22,9 +25,8 @@ function Camera(url) {
  * Open connection to camera and setup pipes
  * @param {String=} url - url to camera
  */
-Camera.prototype.connect = function (url, name) {
+Camera.prototype.connect = function (url) {
   this.connection = request.get(url);
-  this.name = name;
 
   function errorCallback (err) {
     if (err.code == 'ETIMEDOUT') {
@@ -37,14 +39,16 @@ Camera.prototype.connect = function (url, name) {
   this.consumer = new MjpegConsumer();
   this.resizer = new Resizer();
   this.output = new Output();
-  this.channel = new Channel(this.name);
+  this.channel = new Channel(this.id);
+  this.toSocket = new WriteToSocket(this.socket, this.id);
   
   // setup the pipes
   return this.connection
     .pipe(this.consumer)
     .pipe(this.resizer)
-    .pipe(this.output)
-    .pipe(this.channel);
+    .pipe(this.toSocket);
+    // .pipe(this.output)
+    // .pipe(this.channel);
 }
 
 Camera.prototype.reconnect = function () {
@@ -58,6 +62,7 @@ Camera.prototype.reconnect = function () {
 Camera.prototype.close = function () {
   this.resizer.unpipe(this.output);
   this.consumer.unpipe(this.resizer);
+  this.resizer.unpipe(this.toSocket);
   // this.connection.unpipe(this.consumer);
 }
 
