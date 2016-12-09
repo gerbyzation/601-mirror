@@ -74,6 +74,8 @@
             // The final imagearray, 128 different color values
             // Each with three entries (colorValue, imageElement, ID)
             var socketImageArray = new Array(128 * 3);
+
+            // var imageArray = socketImageArray
             
             // define images 
             for (var i = 0; i < 45; i +=3) {      
@@ -154,21 +156,23 @@
                         ctx2.fillRect(x * width, y * height, width, height);
                         
                         // start at random location in the array
-                        randomLocation = Math.floor(Math.random(imageArray.length / 3));
+                        // randomLocation = Math.floor(Math.random(socketImageArray.length / 3));
                         
                         // find matching image from array in a random loop?
 //                        for (var i = randomLocation * 3; i != randomLocation * 3; i +=3) {                            
-//                            if (agvColour == imageArray[i+1]){
-//                                ctx2.drawImage( imageArray[i] , x * width, y * height, width, height);
+//                            if (agvColour == socketImageArray[i+1]){
+//                                ctx2.drawImage( socketImageArray[i] , x * width, y * height, width, height);
 //                            }
 //                        }   
                         
                         // find matching image from array
-                        for (var i = 0; i < imageArray.length; i +=3) {                            
-                            if (agvColour == imageArray[i+1]){
-                                ctx2.drawImage( imageArray[i] , x * width, y * height, width, height);
-                            }
-                        }        
+                        // for (var i = 0; i < socketImageArray.length; i +=3) {                            
+                        //     if (agvColour == socketImageArray[i+1]){
+                        if(socketImageArray[agvColour] !== undefined) {
+                            ctx2.drawImage(socketImageArray[agvColour].img , x * width, y * height, width, height);
+                        }
+                        //     }
+                        // }        
                     }
                 } 
             }
@@ -200,14 +204,20 @@
                 
                 // Assuming data is an array constituting of (colorValue, imageData, ID)
                 // Assuming all the data has unique colour values
-                
+                /*
+                    {
+                        color: [int: color[0-128]],
+                        id: [uuid],
+                        frame: [base64 buffer]
+                    }
+                */
                 // socketImageArray (colorValue, imageElement, ID)
                 
-                for (var i = 0; i < data.length; i +=3) {  
-                    socketImageArray[(data[i] * 3) + 1] = new Image();          // Create new img element at [colorvalue + 1]
-                    socketImageArray[(data[i] * 3) + 1] .src = data[i+1];       // set img source to load image
-                    socketImageArray[(data[i] * 3) + 2] = data[i + 2];          // set third value to ID from data array
-                }
+                // for (var i = 0; i < data.length; i +=3) {  
+                //     socketImageArray[(data.color * 3) + 1] = new Image();          // Create new img element at [colorvalue + 1]
+                //     socketImageArray[(data.color * 3) + 1] .src = data.frame;       // set img source to load image
+                //     socketImageArray[(data.color * 3) + 2] = data.id;          // set third value to ID from data array
+                // }
                     
             });
 
@@ -222,10 +232,20 @@
                 // socketImageArray (colorValue, imageElement, ID)
                 
                 //data[0] = colorvalue and thus the place in the socketImageArray
-                socketImageArray[(data[0] * 3) + 1] = new Image();          // Create new img element at [colorvalue + 1]
-                socketImageArray[(data[0] * 3) + 1] .src = data[i+1];       // set img source to load image
-                socketImageArray[(data[0] * 3) + 2] = data[i + 2];          // set third value to ID from data array
+                // socketImageArray[(data[0] * 3) + 1] = new Image();          // Create new img element at [colorvalue + 1]
+                // socketImageArray[(data[0] * 3) + 1] .src = data[i+1];       // set img source to load image
+                // socketImageArray[(data[0] * 3) + 2] = data[i + 2];          // set third value to ID from data array
 
+                // socketImageArray[(data.color * 3) + 1] = new Image();          // Create new img element at [colorvalue + 1]
+                // socketImageArray[(data.color * 3) + 1] .src = data.frame;       // set img source to load image
+                // socketImageArray[(data.color * 3) + 2] = data.id;          // set third value to ID from data array
+                let image = new Image();
+                image.src = data.frame;
+                socketImageArray[data.color] = {
+                    id: data.id,
+                    img: image,
+                    color: data.color
+                }
                 
             });
             
