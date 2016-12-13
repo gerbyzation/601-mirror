@@ -6,7 +6,7 @@ const util   = require('util');
 const winston = require('winston');
 const expressWinston = require('express-winston');
 
-const client = require('socket.io-client')('http://localhost:8081');
+const client = require('socket.io-client')('https://gerbyzation.nl');
 const socketio = require('socket.io');
 const opbeat = require('opbeat').start({
   appId: '7175bcb323',
@@ -28,7 +28,14 @@ app.use(expressWinston.errorLogger({
   ]
 }));
 
-app.use(express.static('public'));
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods',  'GET, POST, OPTIONS, PUT, PATCH, DELETE');
+  res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type');
+  next();
+});
+
+app.use(express.static('../public'));
 app.set('PORT', 80);
 // app.set('socket', socket);
 app.set('client', client);
@@ -38,7 +45,7 @@ app.set('logger', winston);
 require('./cameras')(app);
 require('./feeds')(app);
 
-server.listen(3000, function () {
+server.listen(80, function () {
     winston.info('App listening on 3000');
 });
 
