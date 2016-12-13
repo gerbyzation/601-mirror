@@ -2,8 +2,20 @@ const winston = require('winston');
 const MjpegCamera = require('mjpeg-camera');
 const getColors = require('get-image-colors');
 const async = require('async');
+const socketClient = require('socket.io-client');
 
-const socket = require('socket.io-client')('http://localhost:8081');
+const env = process.env.NODE_ENV || 'debug';
+
+var socket;
+
+if (env === 'production') {
+  socket = socketClient('https://gerbyzation.nl')
+} else {
+  console.log('debug mode');
+  socket = socketClient('http://localhost:8081');
+}
+
+console.log('still going');
 
 const logger = new winston.Logger({
   transports: [
@@ -69,4 +81,4 @@ const queue = async.queue((item, done) => {
       done(null, start);
     });
   });
-}, 70);
+}, 50);

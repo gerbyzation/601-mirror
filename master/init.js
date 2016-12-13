@@ -9,8 +9,8 @@ let init = true;
 //   console.log('set new db');
 //   init = true;
 // }
-
-const db = new sqlite3.Database(':memory:');
+const dbLocation = process.env.NODE_ENV == 'production' ? ':memory:' : './sqlite.db';
+const db = new sqlite3.Database(dbLocation);
 
 module.exports = function(app) {
   const logger = app.get('logger');

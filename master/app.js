@@ -1,4 +1,5 @@
- const express = require('express');
+const express = require('express');
+const https = require('https');
 const http = require('http');
 const socketio = require('socket.io');
 const logger = require('./winston');
@@ -9,10 +10,26 @@ const uuid = require('node-uuid');
 const fs = require('fs');
 const path = require('path');
 const moment = require('moment');
+const cors = require('cors');
+
+const env = process.env.NODE_ENV || 'debug';
 
 const app = express();
-const server = http.Server(app);
+
+console.log('still going');
+
+if (env == 'production') {
+  const options = {};
+  options.key =  fs.readFileSync('/etc/letsencrypt/live/gerbyzation.nl/privkey.pem');
+  options.cert = fs.readFileSync('/etc/letsencrypt/live/gerbyzation.nl/cert.pem');
+  var server = https.createServer(options, app);
+} else {
+  var server = http.createServer(app);
+}
 const io = socketio(server)
+
+if (env == 'production') app.set('PORT', 443)
+else app.set('PORT', 8081);
 
 // const logger = new winston.Logger({
 //   transports: [
@@ -26,10 +43,13 @@ const init = require('./init');
 
 app.set('logger', logger);
 app.set('io', io);
+app.use(express.static("../public"));
 
 // setup database and read feeds from output.json
 init(app);
 const db = app.get('db');
+
+app.use(cors());
 
 io.on('connection', (client) => {
   logger.info('a node connected', client.id);
@@ -145,7 +165,13 @@ io.on('connection', (client) => {
   client.on('disconnect', () => {
     logger.info('node disconnected', client.id);
     let query = `UPDATE feeds SET status='inactive' WHERE node='` + client.id + `';`
-    db.run(query, (err) => logger.error(err));
+    db.run(query, (err, res) => {
+      if (err) logger.error(err)
+    });
+    query = `DELETE FROM nodes WHERE id='` + client.id + `';`;
+    db.run(query, (err, res) => {
+      if (err) logger.error(err);
+    })
   });
 
   client.on('test_request', () => {
@@ -177,6 +203,6 @@ function swap_feed(currentFeedId, color, client) {
 
 require('./routes')(app);
 
-server.listen(8081, () => {
-  logger.info('master server listening on 8081');
+server.listen(app.get('PORT'), () => {
+  logger.info('master server listening on', app.get("PORT"));
 });
