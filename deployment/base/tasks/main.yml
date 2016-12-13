@@ -1,0 +1,22 @@
+- name: add node to package thing
+  shell: curl -sL https://deb.nodesource.com/setup_6.x | sudo -E bash -
+
+- name: install packeages
+  become: yes
+  apt: pkg={{ item }} state=installed update_cache=yes
+  with_items:
+    - nodejs
+    - build-essential
+    - git
+    - vim
+    - htop
+
+- name: make project dir
+  file:
+    path: /var/www/
+    state: directory
+
+- name: clone repo onto server
+  git: 
+    repo: https://github.com/gerbyzation/601-mirror.git
+    dest: /var/www/

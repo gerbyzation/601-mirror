@@ -1,0 +1,3 @@
+- name: install npm packages
+  shell: cd /var/www/601-mirror/server && npm install
+

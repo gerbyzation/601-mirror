@@ -2,8 +2,6 @@ const express = require('express');
 const async = require('async');
 const http = require('http');
 
-const request = require('request');
-const shodan = require('shodan-client');
 const util   = require('util');
 const winston = require('winston');
 const expressWinston = require('express-winston');

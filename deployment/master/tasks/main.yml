@@ -1,0 +1,2 @@
+- name: install npm packages
+  shell: cd /var/www/master && npm install
