@@ -3,7 +3,7 @@ const MjpegCamera = require('mjpeg-camera');
 const getColors = require('get-image-colors');
 const async = require('async');
 
-const socket = require('socket.io-client')('http://localhost:8081');
+const socket = require('socket.io-client')('https://gerbyzation.nl');
 
 const logger = new winston.Logger({
   transports: [
@@ -69,4 +69,4 @@ const queue = async.queue((item, done) => {
       done(null, start);
     });
   });
-}, 70);
+}, 50);

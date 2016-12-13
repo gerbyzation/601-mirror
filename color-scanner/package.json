@@ -5,7 +5,7 @@
   "license": "MIT",
   "dependencies": {
     "async": "^2.1.4",
-    "get-image-colors": "^1.5.1",
+    "get-image-colors": "git+https://github.com/gerbyzation/get-image-colors.git",
     "mjpeg-camera": "^1.7.2",
     "socket.io-client": "^1.7.2",
     "uuid": "^3.0.1",
