@@ -23,7 +23,7 @@ function WriteToSocket(socket, id, options) {
 util.inherits(WriteToSocket, stream.Writable);
 
 WriteToSocket.prototype._write = function (chunk, encoding, next) {
-  if (this.last_check < Date.now() - 60 * 1000) {
+  if (this.last_check < Date.now() - 10 * 1000) {
     getColors(chunk, 'image/jpg', (err, colors) => {
       if (err) console.error(err)
       else {
@@ -32,14 +32,16 @@ WriteToSocket.prototype._write = function (chunk, encoding, next) {
         this.socket.emit('update_feed_color', {
           id: this.id,
           color: color,
+          active: true
         });
         this.last_check = Date.now();
       }
     });
   }
+  const base64 = 'data:image/jpeg;base64,' + chunk.toString('base64');
   this.socket.emit('image_frame', {
     id: this.id,
-    frame: chunk
+    frame: base64
   })
   next();
 }

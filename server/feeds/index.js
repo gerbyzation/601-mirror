@@ -16,6 +16,7 @@ function streamRoute (app) {
   const pipes = {};
 
   function init_feed(data) {
+    if (data === undefined) return logger.warn('init feed received undefined');
     console.log('url', data)
     let id = data['id'];
     let feed = new Camera(data['url'], socket, id);
@@ -34,10 +35,10 @@ function streamRoute (app) {
     const id = data.currentFeedId;
     const newFeed = data.newFeed;
     init_feed(newFeed);
-    setTimeout(500, () => {
-      pipes[id].close();
+    setTimeout(() => {
+      // pipes[id].close();
       delete pipes[id];
-    });
+    }, 500);
   })
 
   app.get('/start_streams', (req, res) => {
@@ -62,6 +63,12 @@ function streamRoute (app) {
     //   res.send();
     // });
   });
+
+  app.get('/test', (req, res) => {
+    socket.emit('test_request');
+    console.log('################################### TEST REQUEST');
+    res.send();
+  })
 }
 
 module.exports = streamRoute;

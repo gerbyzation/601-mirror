@@ -1,7 +1,7 @@
 const express = require('express');
 const http = require('http');
 const socketio = require('socket.io');
-const winston = require('winston');
+const logger = require('./winston');
 const expressWinston = require('express-winston');
 const consoleFormatter = require('winston-console-formatter');
 const sqlite3 = require('sqlite3');
@@ -14,11 +14,13 @@ const app = express();
 const server = http.Server(app);
 const io = socketio(server)
 
-const logger = new winston.Logger({
-  transports: [
-    new (winston.transports.Console)({level: 'debug'}),
-  ]
-});
+// const logger = new winston.Logger({
+//   transports: [
+//     new (winston.transports.Console)({level: 'debug'}),
+//   ]
+// });
+
+// const logger = new winston.Logger();
 
 const init = require('./init');
 
@@ -85,9 +87,13 @@ io.on('connection', (client) => {
           (err, res) => {
             if (err) return logger.error(err);
             // check for difference in color
-            if (res.color !== data.color) {
-              swap_feed(data.id, color, client);
-            };
+            if (res !== undefined) {
+              console.log('color check', res.color !== data.color);
+              if (res.color !== data.color) {
+                logger.info('swapping feeds', data.id);
+                swap_feed(data.id, res.color, client);
+              };
+            }
           }
         )
       })
@@ -110,7 +116,7 @@ io.on('connection', (client) => {
   });
 
   client.on('init_streams', () => {
-    for (var i = 1; i <= 15; i++){
+    for (var i = 30; i <= 120; i += 3){
       let query = 'SELECT * FROM feeds WHERE color=' + i;
       logger.debug('query', query);
       db.get(query, (err, response) => {
@@ -127,8 +133,10 @@ io.on('connection', (client) => {
   })
 
   client.on('image_frame', (data) => {
-    db.get('SELECT color FROM feeds WHERE id=$id', {id: data.id}, (err, res) => {
-      if (err) return logger.error(err);
+    let query = `SELECT * FROM feeds WHERE id="` + data.id + `";`;
+    db.get(query, (err, res) => {
+      if (err) return console.error(err);
+      if (res === undefined) return;
       data.color = res.color;
       io.emit('image_frame', data);
     })
@@ -136,10 +144,21 @@ io.on('connection', (client) => {
 
   client.on('disconnect', () => {
     logger.info('node disconnected', client.id);
+    let query = `UPDATE feeds SET status='inactive' WHERE node='` + client.id + `';`
+    db.run(query, (err) => logger.error(err));
   });
+
+  client.on('test_request', () => {
+    db.get('UPDATE feeds SET status="inactive" WHERE status="inactive"', (err, res) => {
+      if (err) return logger.error(err);
+      io.emit('test_response');
+      console.log('########################################### TEST RESPONSE')
+    })
+  })
 });
 
 function swap_feed(currentFeedId, color, client) {
+  console.log('##### swapping feeds');
   // 1. find new feed with right color
   db.get(
     'SELECT * FROM feeds WHERE color=$color',
@@ -148,6 +167,10 @@ function swap_feed(currentFeedId, color, client) {
       if (err) return logger.error(err);
       // 2. send swap event to client
       client.emit('swap_feed', {currentFeed: currentFeedId, newFeed: res});
+      let query = `UPDATE feeds SET status="inactive" WHERE id='` + currentFeedId + `';`
+      db.run(query, (err) => {
+        if (err) return logger.error('failed to mark feed as inactive on swap', query , err);
+      })
     }
   )
 }
