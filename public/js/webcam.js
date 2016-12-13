@@ -343,7 +343,7 @@ var Webcam = {
 			alert("Webcam.js Error: " + message);
 		}
 		
-		return false; // no hook defined
+//		return false; // no hook defined
 	},
 
 	setSWFLocation: function(value) {
