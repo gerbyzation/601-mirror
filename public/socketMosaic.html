@@ -21,7 +21,8 @@
         <script type="text/javascript" src='js/socket.io.js'></script>
 
         <script language="JavaScript">
-            var socket = io('http://localhost:8081');
+
+            var socket = io();
             
             var c = document.getElementById("myCanvas");
             var ctx = c.getContext("2d");

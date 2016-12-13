@@ -1,0 +1,28 @@
+Traceback (most recent call last):
+  File "/usr/bin/letsencrypt", line 9, in <module>
+    load_entry_point('letsencrypt==0.4.1', 'console_scripts', 'letsencrypt')()
+  File "/usr/lib/python2.7/dist-packages/letsencrypt/cli.py", line 1946, in main
+    args = prepare_and_parse_args(plugins, cli_args)
+  File "/usr/lib/python2.7/dist-packages/letsencrypt/cli.py", line 1638, in prepare_and_parse_args
+    return helpful.parse_args()
+  File "/usr/lib/python2.7/dist-packages/letsencrypt/cli.py", line 1206, in parse_args
+    parsed_args = self.parser.parse_args(self.args)
+  File "/usr/lib/python2.7/dist-packages/configargparse.py", line 216, in parse_args
+    env_vars = env_vars)
+  File "/usr/lib/python2.7/dist-packages/configargparse.py", line 349, in parse_known_args
+    self, args=args, namespace=namespace)
+  File "/usr/lib/python2.7/argparse.py", line 1733, in parse_known_args
+    namespace, args = self._parse_known_args(args, namespace)
+  File "/usr/lib/python2.7/argparse.py", line 1939, in _parse_known_args
+    start_index = consume_optional(start_index)
+  File "/usr/lib/python2.7/argparse.py", line 1879, in consume_optional
+    take_action(action, args, option_string)
+  File "/usr/lib/python2.7/argparse.py", line 1807, in take_action
+    action(self, namespace, argument_values, option_string)
+  File "/usr/lib/python2.7/dist-packages/letsencrypt/cli.py", line 1837, in __call__
+    _process_domain(args, domain_arg)
+  File "/usr/lib/python2.7/dist-packages/letsencrypt/cli.py", line 1818, in _process_domain
+    domain = le_util.enforce_domain_sanity(domain)
+  File "/usr/lib/python2.7/dist-packages/letsencrypt/le_util.py", line 328, in enforce_domain_sanity
+    "bare IP address.".format(domain))
+ConfigurationError: Requested name 139.59.186.137 is an IP address. The Let's Encrypt certificate authority will not issue certificates for a bare IP address.

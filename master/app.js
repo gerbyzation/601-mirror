@@ -1,5 +1,5 @@
  const express = require('express');
-const http = require('http');
+const http = require('https');
 const socketio = require('socket.io');
 const logger = require('./winston');
 const expressWinston = require('express-winston');
@@ -9,10 +9,17 @@ const uuid = require('node-uuid');
 const fs = require('fs');
 const path = require('path');
 const moment = require('moment');
+const cors = require('cors');
+
+const options = {
+  key: fs.readFileSync('/etc/letsencrypt/live/gerbyzation.nl/privkey.pem'),
+  cert: fs.readFileSync('/etc/letsencrypt/live/gerbyzation.nl/cert.pem'),
+}
 
 const app = express();
-const server = http.Server(app);
+const server = http.createServer(options, app);
 const io = socketio(server)
+
 
 // const logger = new winston.Logger({
 //   transports: [
@@ -26,10 +33,13 @@ const init = require('./init');
 
 app.set('logger', logger);
 app.set('io', io);
+app.use(express.static("../public"));
 
 // setup database and read feeds from output.json
 init(app);
 const db = app.get('db');
+
+app.use(cors());
 
 io.on('connection', (client) => {
   logger.info('a node connected', client.id);
@@ -177,6 +187,6 @@ function swap_feed(currentFeedId, color, client) {
 
 require('./routes')(app);
 
-server.listen(8081, () => {
+server.listen(443, () => {
   logger.info('master server listening on 8081');
 });
