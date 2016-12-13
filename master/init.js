@@ -3,14 +3,14 @@ const fs = require('fs');
 const path = require('path');
 const sqlite3 = require('sqlite3');
 
-let init = false;
+let init = true;
 
-if (!fs.existsSync(__dirname + '../stuff.db')) {
-  console.log('set new db');
-  init = true;
-}
+// if (!fs.existsSync(__dirname + '../stuff.db')) {
+//   console.log('set new db');
+//   init = true;
+// }
 
-const db = new sqlite3.Database('./stuff.db');
+const db = new sqlite3.Database(':memory:');
 
 module.exports = function(app) {
   const logger = app.get('logger');
