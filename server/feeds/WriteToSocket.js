@@ -28,7 +28,6 @@ WriteToSocket.prototype._write = function (chunk, encoding, next) {
       if (err) console.error(err)
       else {
         const color = Math.floor(colors[0].rgb().reduce((a, b) => a + b) / 6);
-        console.log('color value', color);
         this.socket.emit('update_feed_color', {
           id: this.id,
           color: color,

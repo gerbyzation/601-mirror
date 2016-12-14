@@ -13,10 +13,9 @@ const moment = require('moment');
 const cors = require('cors');
 
 const env = process.env.NODE_ENV || 'debug';
+const maxFeedsPerNode = 5;
 
 const app = express();
-
-console.log('still going');
 
 if (env == 'production') {
   const options = {};
@@ -31,14 +30,6 @@ const io = socketio(server)
 if (env == 'production') app.set('PORT', 443)
 else app.set('PORT', 8081);
 
-// const logger = new winston.Logger({
-//   transports: [
-//     new (winston.transports.Console)({level: 'debug'}),
-//   ]
-// });
-
-// const logger = new winston.Logger();
-
 const init = require('./init');
 
 app.set('logger', logger);
@@ -51,27 +42,75 @@ const db = app.get('db');
 
 app.use(cors());
 
+var check;
+function checkFeeds() {
+  console.log('################################ check feeds');
+  check = setTimeout(() => {
+    db.all('SELECT * FROM feeds WHERE status="active";', (err, res) => {
+      debugger;
+      const colors = res.map(feed => feed.color);
+      const colorsAvailable = [];
+      for (let i = 0; i < 128; i++) {
+        if (!colors.includes(i)) colorsAvailable.push(i);
+      }
+      console.log('active colors', colors.length);
+      console.log('availalbe colors', colorsAvailable.length);
+      var initiated = 0;
+      if (colorsAvailable.length > 0) {
+        db.all('SELECT * FROM nodes', (err, res) => {
+          res.map(node => {
+            let query = `SELECT * FROM feeds WHERE node='` + node.id + `'`;
+            db.all(query, (err, res) => {
+              if (colorsAvailable.length > 0 && (res.length < maxFeedsPerNode)) {
+                // console.log('found', res.length, 'feeds for node');
+                // if (res.length < maxFeedsPerNode) {
+                  let nNewFeeds = Math.min(maxFeedsPerNode - res.length, colorsAvailable.length)
+                  console.log('current', res.length, 'max', maxFeedsPerNode, 'space', nNewFeeds);
+                  if (nNewFeeds > 0) {
+                    for (let i = 0; i < nNewFeeds; i++) {
+                      let randomIndex = Math.floor(Math.random() * colorsAvailable.length);
+                      let color = colorsAvailable[randomIndex];
+                      colorsAvailable.splice(randomIndex, 1);
+                      console.log('node id', node.id);
+                      init_feed(node.id, color);
+                      initiated++;
+                    }
+                  }
+                // }
+              }
+            })
+          })
+        })    
+      }
+      console.log('initiated', initiated, 'feeds')
+    })
+    checkFeeds();
+  }, 10000);
+}
+
 io.on('connection', (client) => {
+  client.emit('id', client.id);
   logger.info('a node connected', client.id);
 
-  db.run(
-    'INSERT INTO nodes VALUES ($node);',
-    {$node: client.id},
-    (err, res) => { if (err) logger.error('add node', err) }
-  );
+  client.on('register_as_proxy', () => {
+    db.run(
+      'INSERT INTO nodes VALUES ($node);',
+      {$node: client.id},
+      (err, res) => { if (err) logger.error('add node', err) }
+    );
 
-  client.emit('init_feed', {
-    id: 123,
-    url: "http://70.116.159.58:80/mjpg/video.mjpg"
+    if (check == null) {
+      checkFeeds();
+    }  
   });
 
   client.on('feed_active', (data) => {
-    logger.debug('feed_active', data);
+    logger.debug('client.on feed_active', data);
     let id = data.id;
     let query = 'UPDATE feeds SET status="' + 'active' + '", node="' + client.id + '" WHERE id="' + id + '"';
     db.run(query, (err, res) => {
-      if (err) logger.error('update feed', err);
-      if (res) logger.info('feed_active update', res);
+      if (err) return logger.error('update feed', err);
+      if (res) return logger.info('feed_active update', res)
     });
   });
 
@@ -98,7 +137,7 @@ io.on('connection', (client) => {
   });
 
   client.on('update_feed_color', (data) => {
-    logger.debug("update color now", data);
+    // logger.debug("update color now", data);
     if (data.active) {
       db.serialize(() => {
         db.get(
@@ -108,7 +147,6 @@ io.on('connection', (client) => {
             if (err) return logger.error(err);
             // check for difference in color
             if (res !== undefined) {
-              console.log('color check', res.color !== data.color);
               if (res.color !== data.color) {
                 logger.info('swapping feeds', data.id);
                 swap_feed(data.id, res.color, client);
@@ -130,32 +168,20 @@ io.on('connection', (client) => {
       },
       (err, res) => {
         if (err) return logger.error('update color err', err)
-        else logger.debug('update color res', res);
       }
     );
   });
 
   client.on('init_streams', () => {
     for (var i = 30; i <= 120; i += 3){
-      let query = 'SELECT * FROM feeds WHERE color=' + i;
-      logger.debug('query', query);
-      db.get(query, (err, response) => {
-          if (err) return logger.error(err);
-          if (response !== undefined) {
-            logger.debug('init_feed', response);
-            client.emit('init_feed', response);
-          } else {
-            logger.warn('init_feed query returned undefined');
-          }
-        }
-      );
+      init_feed(client.id, i);
     }
   })
 
   client.on('image_frame', (data) => {
     let query = `SELECT * FROM feeds WHERE id="` + data.id + `";`;
     db.get(query, (err, res) => {
-      if (err) return console.error(err);
+      if (err) return logger.error(err);
       if (res === undefined) return;
       data.color = res.color;
       io.emit('image_frame', data);
@@ -164,7 +190,7 @@ io.on('connection', (client) => {
 
   client.on('disconnect', () => {
     logger.info('node disconnected', client.id);
-    let query = `UPDATE feeds SET status='inactive' WHERE node='` + client.id + `';`
+    let query = `UPDATE feeds SET status='inactive', node=NULL WHERE node='` + client.id + `';`
     db.run(query, (err, res) => {
       if (err) logger.error(err)
     });
@@ -175,30 +201,50 @@ io.on('connection', (client) => {
   });
 
   client.on('test_request', () => {
-    db.get('UPDATE feeds SET status="inactive" WHERE status="inactive"', (err, res) => {
+    db.get('UPDATE feeds SET status="inactive", node=NULL WHERE status="inactive"', (err, res) => {
       if (err) return logger.error(err);
       io.emit('test_response');
-      console.log('########################################### TEST RESPONSE')
+      logger.info('########################################### TEST RESPONSE')
     })
   })
 });
 
 function swap_feed(currentFeedId, color, client) {
-  console.log('##### swapping feeds');
+  logger.info('##### swapping feeds');
   // 1. find new feed with right color
   db.get(
-    'SELECT * FROM feeds WHERE color=$color',
+    'SELECT * FROM feeds WHERE color=$color AND status="inactive" OR status=NULL',
     {$color: color},
     (err, res) => {
       if (err) return logger.error(err);
       // 2. send swap event to client
       client.emit('swap_feed', {currentFeed: currentFeedId, newFeed: res});
-      let query = `UPDATE feeds SET status="inactive" WHERE id='` + currentFeedId + `';`
+
+      let query = `UPDATE feeds SET status="inactive", node=NULL WHERE id='` + currentFeedId + `';`
+      logger.debug('deactivating', currentFeedId, 'activating', res);
       db.run(query, (err) => {
         if (err) return logger.error('failed to mark feed as inactive on swap', query , err);
-      })
+      });
+      
     }
   )
+}
+
+function init_feed(host, color) {
+  let query = 'SELECT * FROM feeds WHERE color=' + color + ' AND status="inactive" OR status IS NULL;';
+  // logger.debug('query', query);
+  logger.debug('INIT FEED FUNCTION CALL');
+  db.get(query, (err, response) => {
+      if (err) return logger.error(err);
+      if (response !== undefined) {
+        let payload =  Object.assign({}, response, {node: host})
+        logger.debug('io.emit init_feed', payload);
+        io.emit('init_feed', payload);
+      } else {
+        logger.warn('init_feed query returned undefined', query);
+      }
+    }
+    );
 }
 
 require('./routes')(app);

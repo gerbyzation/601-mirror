@@ -60,7 +60,7 @@ Camera.prototype.reconnect = function () {
  * Closes the connection to the camera and unpipe streams
  */
 Camera.prototype.close = function () {
-  this.resizer.unpipe(this.output);
+  this.connection.abort();
   this.consumer.unpipe(this.resizer);
   this.resizer.unpipe(this.toSocket);
   // this.connection.unpipe(this.consumer);

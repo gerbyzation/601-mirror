@@ -21,9 +21,6 @@ const opbeat = require('opbeat').start({
 
 const app = express();
 const server = http.Server(app);
-// const socket = socketio(server)
-
-console.log(env);
 
 if (env == 'production') app.set('PORT', 80)
 else app.set('PORT', 3000);
