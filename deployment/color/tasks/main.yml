@@ -1,3 +1,7 @@
 - name: install npm packages
   shell: cd /var/www/color-scanner && npm install
 
+- name: start app
+  args:
+    chdir: /var/www/color-scanner
+  shell: NODE_ENV=production pm2 start app.js

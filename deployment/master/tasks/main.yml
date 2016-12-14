@@ -1,2 +1,7 @@
 - name: install npm packages
   shell: cd /var/www/master && npm install
+
+- name: start app
+  args:
+    chdir: /var/www/master
+  shell: NODE_ENV=production pm2 start app.js

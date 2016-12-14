@@ -1,3 +1,7 @@
 - name: install npm packages
   shell: cd /var/www/server && npm install
 
+- name: start app
+  args:
+    chdir: /var/www/server
+  shell: NODE_ENV=production FEEDS=50 pm2 start app.js

@@ -239,7 +239,7 @@
                 // socketImageArray[(data.color * 3) + 1] = new Image();          // Create new img element at [colorvalue + 1]
                 // socketImageArray[(data.color * 3) + 1] .src = data.frame;       // set img source to load image
                 // socketImageArray[(data.color * 3) + 2] = data.id;          // set third value to ID from data array
-                let image = new Image();
+                var image = new Image();
                 image.src = data.frame;
                 socketImageArray[data.color] = {
                     id: data.id,

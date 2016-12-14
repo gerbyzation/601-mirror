@@ -1,27 +1,27 @@
-# - name: base setup
-#   hosts: all
-#   remote_user: root
-#   become: yes
-#   roles:
-#     - base
+- name: base setup
+  hosts: all
+  remote_user: root
+  become: yes
+  roles:
+    - base
 
-# - name: deploy master
-#   hosts: master
-#   remote_user: root
-#   roles:
-#     - master
+- name: deploy master
+  hosts: master
+  remote_user: root
+  roles:
+    - master
 
-# - name: deploy color-picker
-#   hosts: color
-#   remote_user: root
-#   roles:
-#     - color
+- name: deploy color-picker
+  hosts: color
+  remote_user: root
+  roles:
+    - color
 
-# - name: deploy proxies
-#   hosts: servers
-#   remote_user: root
-#   roles:
-#     - server
+- name: deploy proxies
+  hosts: servers
+  remote_user: root
+  roles:
+    - server
 
 - name: setup datadog monitoring
   hosts: all

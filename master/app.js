@@ -85,7 +85,7 @@ function checkFeeds() {
       logger.info('initiated', initiated, 'feeds')
     })
     checkFeeds();
-  }, 10000);
+  }, 60000);
 }
 
 io.on('connection', (client) => {
@@ -137,7 +137,7 @@ io.on('connection', (client) => {
   });
 
   client.on('update_feed_color', (data) => {
-    // logger.debug("update color now", data);
+    logger.debug("update color now", data);
     if (data.active) {
       db.serialize(() => {
         db.get(

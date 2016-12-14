@@ -20,3 +20,8 @@
   git: 
     repo: https://github.com/gerbyzation/601-mirror.git
     dest: /var/www/
+
+- name: install pm2
+  shell: npm install -g pm2
+
+
