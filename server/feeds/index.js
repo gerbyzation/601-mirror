@@ -32,7 +32,6 @@ function streamRoute (app) {
   });
 
   socket.on('init_feed', (data) => {
-    console.log('ids', data.node, id, data.node == id);
     if (data.node == id) {
       logger.debug('on init_feed');
       init_feed(data);
@@ -40,7 +39,7 @@ function streamRoute (app) {
   });
 
   socket.on('disconnect', () => {
-    console.log('lost connection, reset pipes');
+    logger.info('lost connection, reset pipes');
     pipes = {};
   })
 
@@ -60,24 +59,6 @@ function streamRoute (app) {
   app.get('/start_streams', (req, res) => {
     socket.emit('init_streams');
     res.send();
-    // logger.info('reading stream', req.params.index);
-    // res.writeHead(200, {
-    //   'Content-Type': 'multipart/x-mixed-replace; boundary=myboundary',
-    //   'Cache-Control': 'no-cache',
-    //   'Connection': 'close',
-    //   'Pragma': 'no-cache'
-    // });
-
-    // const index = req.params.index;
-    // let pipe = pipes[req.params.index];
-
-    // pipe.pipe(res);
-
-    // req.on('close', () => {
-    //   pipe.unpipe(res);
-    //   pipe.close();
-    //   res.send();
-    // });
   });
 
   app.get('/test', (req, res) => {

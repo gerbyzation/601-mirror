@@ -13,7 +13,7 @@ const moment = require('moment');
 const cors = require('cors');
 
 const env = process.env.NODE_ENV || 'debug';
-const maxFeedsPerNode = 5;
+const maxFeedsPerNode = process.env.FEEDS || 10;
 
 const app = express();
 
@@ -44,7 +44,7 @@ app.use(cors());
 
 var check;
 function checkFeeds() {
-  console.log('################################ check feeds');
+  logger.info('################################ check feeds');
   check = setTimeout(() => {
     db.all('SELECT * FROM feeds WHERE status="active";', (err, res) => {
       debugger;
@@ -53,8 +53,8 @@ function checkFeeds() {
       for (let i = 0; i < 128; i++) {
         if (!colors.includes(i)) colorsAvailable.push(i);
       }
-      console.log('active colors', colors.length);
-      console.log('availalbe colors', colorsAvailable.length);
+      logger.info('active colors', colors.length);
+      logger.info('availalbe colors', colorsAvailable.length);
       var initiated = 0;
       if (colorsAvailable.length > 0) {
         db.all('SELECT * FROM nodes', (err, res) => {
@@ -62,16 +62,16 @@ function checkFeeds() {
             let query = `SELECT * FROM feeds WHERE node='` + node.id + `'`;
             db.all(query, (err, res) => {
               if (colorsAvailable.length > 0 && (res.length < maxFeedsPerNode)) {
-                // console.log('found', res.length, 'feeds for node');
+                // logger.info('found', res.length, 'feeds for node');
                 // if (res.length < maxFeedsPerNode) {
                   let nNewFeeds = Math.min(maxFeedsPerNode - res.length, colorsAvailable.length)
-                  console.log('current', res.length, 'max', maxFeedsPerNode, 'space', nNewFeeds);
+                  logger.info('current', res.length, 'max', maxFeedsPerNode, 'space', nNewFeeds);
                   if (nNewFeeds > 0) {
                     for (let i = 0; i < nNewFeeds; i++) {
                       let randomIndex = Math.floor(Math.random() * colorsAvailable.length);
                       let color = colorsAvailable[randomIndex];
                       colorsAvailable.splice(randomIndex, 1);
-                      console.log('node id', node.id);
+                      logger.info('node id', node.id);
                       init_feed(node.id, color);
                       initiated++;
                     }
@@ -82,7 +82,7 @@ function checkFeeds() {
           })
         })    
       }
-      console.log('initiated', initiated, 'feeds')
+      logger.info('initiated', initiated, 'feeds')
     })
     checkFeeds();
   }, 10000);
